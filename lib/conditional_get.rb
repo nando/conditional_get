@@ -21,7 +21,7 @@ module YAConditionalGet
         keys = cg_base_keys + filter_keys
         key = (keys  + cg_request_keys) * ':'
         @conditional_get_ttl, data = if @conditional_get_options[:ttl]
-          [ @conditional_get_options[:ttl], Cache.get(key) ]
+          [ @conditional_get_options[:ttl], cg_cache.get(key) ]
         else
           [ 0, :get_pending ]
         end
@@ -37,7 +37,7 @@ module YAConditionalGet
           else
             headers['Cache-Control'] = 'no-cache'
           end
-          data = Cache.get(key) if data == :get_pending
+          data = cg_cache.get(key) if data == :get_pending
           if data
             cg_replace_personal_message!(data[:content], 'message')
             headers['Content-Type'] = data[:content_type]
@@ -51,7 +51,7 @@ module YAConditionalGet
     
     def cg_set_cache(key, keys)
       unless cg_public_page?
-        cache = (logged_in? ? cg_cache_content(keys + cg_anonymous_keys) : nil)
+        cache = (cg_logged_in? ? cg_cache_content(keys + cg_anonymous_keys) : nil)
         cache ||= cg_cache_content(keys + cg_dirty_cache_keys)
       end
       cache ||= cg_cache_content(cg_base_keys) if cache.nil? && cg_yield_in_progress?
@@ -66,30 +66,30 @@ module YAConditionalGet
           cache
         end
       else
-        Cache.set(cg_yield_in_progress_key, true, 5.minutes) unless cg_yield_in_progress?
+        cg_cache.set(cg_yield_in_progress_key, true, 5.minutes) unless cg_yield_in_progress?
         yield
         base_cache = { 
           :content => response.body,
           :content_type => response.content_type || "text/html; charset=UTF-8" }
         unless cg_yield_in_progress?
-          Cache.set((cg_base_keys * ':'), base_cache)
-          Cache.set(cg_yield_in_progress_key, false)
+          cg_cache.set((cg_base_keys * ':'), headers, 400)
+          cg_cache.set(cg_yield_in_progress_key, false)
         end
         base_cache
       end
-      if cache_or_response && (headers["Status"].to_i == 200)
+      if cache_or_response # && (headers["Status"].to_i == 200)
         content = cache_or_response[:content].clone
         cg_replace_personal_message!(content)
-        Cache.set(key, {
+        cg_cache.set(key, {
           :content       => content, 
           :content_type  => cache_or_response[:content_type]}, @conditional_get_ttl)
         if @conditional_get_options[:tts]
-          Cache.set(cg_cannonical_key, @conditional_get_current_etag, 
+          cg_cache.set(cg_cannonical_key, @conditional_get_current_etag, 
             @conditional_get_options[:tts])
         end
-        if cache.nil? and logged_in? and !cg_public_page?
+        if cache.nil? and cg_logged_in? and !cg_public_page?
           dirty_key = (keys + cg_dirty_cache_keys) * ':'
-          Cache.set(dirty_key, { 
+          cg_cache.set(dirty_key, { 
             :content      => content, 
             :content_type => cache_or_response[:content_type]}, @conditional_get_ttl)
         end
@@ -100,7 +100,7 @@ module YAConditionalGet
       if cg_public_page?
         cg_anonymous_keys
       else
-        [session[:user], (logged_in? && current_user.cache_version) || 0]
+        [session[:user], (cg_logged_in? && current_user.cache_version) || 0]
       end
     end
     
@@ -125,7 +125,7 @@ module YAConditionalGet
     end
 
     def cg_yield_in_progress?
-      @conditional_get_yield_in_progress ||= if Cache.get(cg_yield_in_progress_key)
+      @conditional_get_yield_in_progress ||= if cg_cache.get(cg_yield_in_progress_key)
         :true
       else
         :false
@@ -161,7 +161,7 @@ module YAConditionalGet
     end
     
     def cg_cache_content(keys)
-      Cache.get(keys * ':')
+      cg_cache.get(keys * ':')
     end
     
     def cg_tts_etag_not_expired?
@@ -170,12 +170,20 @@ module YAConditionalGet
     end
 
     def cg_tts_etag
-      @cg_tts_etag ||= (@conditional_get_options[:tts] and Cache.get(cg_cannonical_key)) || 0
+      @cg_tts_etag ||= (@conditional_get_options[:tts] and cg_cache.get(cg_cannonical_key)) || 0
       (@cg_tts_etag == 0 ? nil : @cg_tts_etag)
     end
     
     def cg_public_page?
       @conditional_get_options[:cache_control] &&
         @conditional_get_options[:cache_control] == 'public'
+    end
+    
+    def cg_cache
+      Cache
+    end
+
+    def cg_logged_in?
+      respond_to?(:logged_in?) && logged_in?
     end
 end
