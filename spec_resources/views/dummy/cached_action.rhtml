@@ -1,0 +1,10 @@
+<html>
+<body>
+  <div id="personal_message"><%= "<!-- begin::cache::message -->\n" + (flash[:alert] || @alert || flash[:notice] || @notice || '') + "\n<!-- end::cache::message -->" %></div>
+  <div id="random_number"><%= @random_number %></div>
+<!-- begin::cache::conditional_get_spec -->
+  <div id="user"><%= logged_in? ? current_user.login : 'anonymous' %></div>
+<!-- end::cache::conditional_get_spec -->
+  <div id="cache_version"><%= params[:cache_version] %></div>
+</body>
+</html>
