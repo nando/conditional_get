@@ -1,5 +1,5 @@
 class TtsDummyController < ApplicationController
-  include TheShakerConditionalGet  
+  include YAConditionalGet  
   around_filter :check_tts_dummy_cache
 
   def cached_action

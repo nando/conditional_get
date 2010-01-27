@@ -1,6 +1,6 @@
 require 'digest/md5'
 
-module TheShakerConditionalGet
+module YAConditionalGet
   private
     def conditional_get(*filter_keys)
       @conditional_get_options = if filter_keys.last.is_a? Hash

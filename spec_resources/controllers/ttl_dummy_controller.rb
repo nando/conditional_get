@@ -1,6 +1,6 @@
 
 class TtlDummyController < ApplicationController
-  include TheShakerConditionalGet  
+  include YAConditionalGet  
   around_filter :check_ttl_dummy_cache
 
   def cached_action

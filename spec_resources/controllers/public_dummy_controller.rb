@@ -1,6 +1,6 @@
 
 class PublicDummyController < ApplicationController
-  include TheShakerConditionalGet  
+  include YAConditionalGet  
   around_filter :check_public_dummy_cache
 
   def cached_action
