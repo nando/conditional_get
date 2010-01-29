@@ -108,7 +108,7 @@ module YAConditionalGet
     def cg_dirty_cache_keys; [0             ,                                               0] end
     
     def cg_base_keys
-      @conditional_get_base_keys ||= [request.host, request.request_uri]
+      @conditional_get_base_keys ||= [request.host, "#{request.path}?#{request.query_string}"]
     end
     
     def cg_cannonical_key
