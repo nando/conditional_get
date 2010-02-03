@@ -106,9 +106,10 @@ module YAConditionalGet
     
     def cg_anonymous_keys;   [nil           ,                                               0] end
     def cg_dirty_cache_keys; [0             ,                                               0] end
-    
+   
     def cg_base_keys
-      @conditional_get_base_keys ||= [request.host, "#{request.path}?#{request.query_string}"]
+      @conditional_get_base_keys ||= [request.host, 
+        "#{request.path}?#{@conditional_get_options[:query_string]||request.query_string}"]
     end
     
     def cg_cannonical_key
